@@ -11,8 +11,9 @@ import time
 import os
 import matplotlib.pyplot as plt
 from torch.utils.data import dataloader
+import cv2 as cv
 
-def train(n_epoch=1000,lr=0.05):
+def train(n_epoch=5,lr=0.005):
     transform = transforms.Compose(
         [
             transforms.RandomHorizontalFlip(),
@@ -32,27 +33,23 @@ def train(n_epoch=1000,lr=0.05):
     # label_list = os.listdir((os.path.join(data_path, 'train/', 'labels/')))
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model = network.VGG16(num_class=10)
-    # model = torchvision.models.vgg16()
-    # model.classifier=nn.Sequential(
-    #     nn.Sequential(
-    #         nn.Linear(512 * 1 * 1, 4096),
-    #         nn.ReLU(True),
-    #         nn.Dropout(),
-    #         nn.Linear(4096, 4096),
-    #         nn.ReLU(True),
-    #         nn.Dropout(),
-    #         nn.Linear(4096, 10),
-    #     )
-    #
-    # )
-    #put to GPU to accelerate calculate
+    #put txo GPU to accelerate calculate
     model.to(device)
     criterior = nn.CrossEntropyLoss()
     print(len(trainset))
     optimizer = torch.optim.SGD(model.parameters(),lr=lr)
+    file = open('SGD.txt',mode="w")
+    figure= plt.figure()
+    ax_train_acc = figure.add_subplot(1,1,1)
+    ax_train_acc.set_ylabel('train accuracy')
+    ax_train_loss =ax_train_acc.twinx()
+    ax_train_loss.set_ylabel('train loss')
+    acc_list = []
+    loss_list= []
     for epoch in range(n_epoch):
         time_start = time.time()
         print("epoch:{}/{}".format(epoch,n_epoch))
+        file.writelines("epoch:{}/{}".format(epoch,n_epoch)+'\n')
         print('--'*10)
         run_loss = 0
         run_correct = 0
@@ -72,7 +69,22 @@ def train(n_epoch=1000,lr=0.05):
             run_loss+=loss
             #print(pred==y_train)
             run_correct += torch.sum(pred==y_train)
+        run_correct=run_correct.cpu()
         print("loss:{:.4f},accuracy:{:.4f}%".format(run_loss / len(trainset), 100 * run_correct / len(trainset)))
+        loss = float(run_loss / len(trainset))
+        acc = float(100 * run_correct / len(trainset))
+        loss_list.append(loss)
+        acc_list.append(acc)
+        if acc==99:
+            break
+        # ax_train_acc.plot(epoch,acc,label = 'train_acc')
+        # ax_train_loss.plot(epoch,loss,label = 'train_loss')
+        file.writelines("loss:{:.4f},accuracy:{:.4f}%".format(run_loss / len(trainset), 100 * run_correct / len(trainset))+'\n')
+    file.close()
+    ax_train_acc.plot(range(len(acc_list)),acc_list,label = 'train_acc')
+    ax_train_loss.plot(range(len(loss_list)),loss_list,label = 'train_loss')
+    plt.show()
+    plt.savefig('./tran_loss.png')
     torch.save(model,'vgg16.pkl')
 
 
@@ -91,7 +103,7 @@ if __name__=='__main__':
     parser.add_argument('--model',type=str,default='vgg16')
     #parser.add_argument('--data_path',type=str,default='data/')
     parser.add_argument('--lr',type=float,default=0.05)
-    parser.add_argument('--epoch',type=int,default=1000)
+    parser.add_argument('--epoch',type=int,default=100)
     args = parser.parse_args()
     #data_path = args.data_path
     epoch = args.epoch

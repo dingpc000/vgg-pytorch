@@ -7,7 +7,7 @@ class VGG16(nn.Module):
         super(VGG16,self).__init__()
         #input size 224*224
         #lblock1
-        self.conv1_1 = nn.Conv2d(3,64,3,padding=1)
+        self.conv1_1 = nn.Conv2d(2,64,3,padding=1)
         self.relu1_1 = nn.ReLU(inplace=True)
         self.conv1_2 = nn.Conv2d(64,64,3,padding=1)
         self.relu1_2 = nn.ReLU(inplace=True)
@@ -68,6 +68,7 @@ class VGG16(nn.Module):
         self._initialize_weights()
 
     def forward(self,x):
+        print(x.data.shape)
         x  =  self.conv1_1(x)
         x = self.relu1_1(x)
         x = self.conv1_2(x)
@@ -120,6 +121,7 @@ class VGG16(nn.Module):
                 if m.bias is not None:
                     m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
+                print(m)
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
